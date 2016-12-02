@@ -1,48 +1,42 @@
 package config
 
 import (
-	"log"
-	"path/filepath"
 	"github.com/spf13/viper"
 )
 
-var (
-	Address      = "" // Address to bind on
-	Port         = "" // Port for web interface to listen on
-	UI           = "" // Path to the static files web folder
-	ListenString = "" // Complete string of address:port to listen on
-)
+var EnviornmentPrefix = "KUBE_SOURCE"
+var conf map[string]string = map[string]string{}
 
-// LoadConfig retrieves data needed to start the server
-func LoadConfig(configFile string) error {
-	viper.SetEnvPrefix("brood")
+func buildConfig(){
+	conf["address"] = "0.0.0.0"
+	conf["port"] = "5606"
+	conf["server"] = "http"
+}
 
-	// Set defaults
-	viper.SetDefault("address", "0.0.0.0")
-	viper.SetDefault("port", "3456")
-	viper.SetDefault("ui", "static/dist")
+func Load()(err error) {
+	viper.SetEnvPrefix(EnviornmentPrefix)
+	buildConfig()
 
-	filename := filepath.Base(configFile)
-	viper.SetConfigName(filename[:len(filename)-len(filepath.Ext(filename))])
-	viper.AddConfigPath(filepath.Dir(configFile))
-	viper.SetConfigType("json")
-
-	err := viper.ReadInConfig()
-	if err != nil {
-		log.Printf("unable to read config file %v: %v\n", configFile, err)
+	for field,fieldDefault := range conf {
+		viper.SetDefault(field, fieldDefault)
 	}
 
-	// Set the config
-	viper.BindEnv("address")
-	Address = viper.GetString("address")
+	for field := range conf {
+		err = viper.BindEnv(field)
+		if err != nil {
+			return
+		}
+		conf[field] = viper.GetString(field)
+	}
 
-	viper.BindEnv("port")
-	Port = viper.GetString("port")
+	return
+}
 
-	viper.BindEnv("ui")
-	UI = viper.GetString("ui")
+func Get(field string)(string){
+	return conf[field]
+}
 
-	ListenString = Address + ":" + Port
-
-	return nil
+func addConfigField(field string, defaultValue interface{}){
+	viper.SetDefault(field, defaultValue)
+	viper.BindEnv(field)
 }
