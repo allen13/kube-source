@@ -1,0 +1,7 @@
+package: github.com/allen13/kube-source
+import:
+- package: github.com/docopt/docopt-go
+  version: ^0.6.2
+- package: github.com/labstack/echo
+  version: ^3.0.2
+- package: github.com/spf13/viper
