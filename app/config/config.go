@@ -11,6 +11,9 @@ func buildConfig(){
 	conf["address"] = "0.0.0.0"
 	conf["port"] = "5606"
 	conf["server"] = "http"
+	conf["request_logging"] = "false"
+	conf["container_namespace"] = "integration-containers"
+	conf["container_ip"] = "127.0.0.1"
 }
 
 func Load()(err error) {
@@ -34,9 +37,4 @@ func Load()(err error) {
 
 func Get(field string)(string){
 	return conf[field]
-}
-
-func addConfigField(field string, defaultValue interface{}){
-	viper.SetDefault(field, defaultValue)
-	viper.BindEnv(field)
 }

@@ -25,7 +25,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	err = app.RunApp()
+	err = app.RunServer()
 	if err != nil {
 		log.Fatalln(err)
 	}

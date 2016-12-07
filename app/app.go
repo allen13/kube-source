@@ -7,29 +7,30 @@ import (
 	"github.com/labstack/echo/middleware"
 )
 
-func RunApp()(err error){
+func RunServer()(err error){
 	config.Load()
 
-	e := echo.New()
-	BuildApp(e)
+	server := buildServer()
 
 	bindAddr := config.Get("address") + ":" + config.Get("port")
 
 	if config.Get("server")  == "https" {
-		err = e.StartTLS(bindAddr, config.Get("tls_cert"), config.Get("tls_key"))
+		err = server.StartTLS(bindAddr, config.Get("tls_cert"), config.Get("tls_key"))
 	} else {
-		err = e.Start(bindAddr)
+		err = server.Start(bindAddr)
 	}
 
 	return
 }
 
-func BuildApp(e *echo.Echo){
+func buildServer()(e *echo.Echo){
+	e = echo.New()
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
-	ok := map[string]string{"status":"ok"}
 	e.GET("/ping", func(ctx echo.Context) error {
-		return ctx.JSON(http.StatusOK, ok)
+		return ctx.JSON(http.StatusOK, map[string]string{"status":"ok"})
 	})
+
+	return
 }
