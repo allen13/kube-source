@@ -15,7 +15,7 @@ type Client struct {
 }
 
 type ContainerCreateRequest struct {
-	DockerImage string           `json:"docker-image"`
+	DockerImage string           `json:"image"`
 	Env []v1.EnvVar		     `json:"env"`
 	Ports       []v1.ServicePort `json:"ports"`
 }

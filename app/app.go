@@ -12,7 +12,7 @@ func RunServer() (err error) {
 
 	server := buildServer()
 
-	bindAddr := config.Get("address") + ":" + config.Get("port")
+	bindAddr := config.Get("address")
 
 	if config.Get("server") == "https" {
 		err = server.RunTLS(bindAddr, config.Get("tls_cert"), config.Get("tls_key"))

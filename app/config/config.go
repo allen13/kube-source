@@ -8,8 +8,7 @@ var EnviornmentPrefix = "KUBE_SOURCE"
 var conf map[string]string = map[string]string{}
 
 func buildConfig(){
-	conf["address"] = "0.0.0.0"
-	conf["port"] = "5606"
+	conf["address"] = "0.0.0.0:5606"
 	conf["server"] = "http"
 	conf["request_logging"] = "false"
 	conf["container_namespace"] = "integration-containers"
