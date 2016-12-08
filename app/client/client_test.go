@@ -1,4 +1,4 @@
-package kubernetes
+package client
 
 import (
 	"testing"
@@ -7,7 +7,12 @@ import (
 )
 
 func TestKubeSourceClient(t *testing.T) {
-	client, err := NewClient("integration-containers")
+	token, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/token")
+	if err != nil {
+		t.Error(err)
+	}
+
+	client, err := NewClientWithToken("integration-containers", string(token))
 	if err != nil{
 		t.Error(err)
 	}
@@ -20,28 +25,22 @@ func TestKubeSourceClient(t *testing.T) {
 		},
 	}
 
-	request := ContainerRequest{
-		dockerImage: "redis:alpine",
-		ports: ports,
+	createRequest := ContainerCreateRequest{
+		DockerImage: "redis:alpine",
+		Ports: ports,
 	}
 
-	token, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/token")
+	containerResource, err := client.CreateContainerResource(createRequest)
 	if err != nil {
 		t.Error(err)
 	}
 
-	containerResource, err := client.CreateContainerResource(request, string(token))
-
-	if err != nil {
-		t.Error(err)
-	}
-
-	nodePort := containerResource.ports[0]
+	nodePort := containerResource.Ports[0]
 	if !(nodePort > 30000 && nodePort < 32767){
 		t.Errorf("Failed to get back valid not port. Got %d", nodePort)
 	}
 
-	err = client.DeleteContainerResource(containerResource.name, string(token))
+	err = client.DeleteContainerResource(containerResource.Name)
 	if err != nil {
 		t.Error(err)
 	}

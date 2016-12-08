@@ -1,12 +1,12 @@
-package kubernetes
+package client
 
 import (
+	"fmt"
+	"github.com/allen13/kube-source/app/config"
+	"github.com/satori/go.uuid"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/rest"
-	"github.com/satori/go.uuid"
-	"github.com/allen13/kube-source/app/config"
-	"fmt"
 )
 
 type Client struct {
@@ -14,18 +14,19 @@ type Client struct {
 	namespace string
 }
 
-type ContainerRequest struct{
-	dockerImage string
-	ports []v1.ServicePort
+type ContainerCreateRequest struct {
+	DockerImage string           `json:"docker-image"`
+	Env []v1.EnvVar		     `json:"env"`
+	Ports       []v1.ServicePort `json:"ports"`
 }
 
 type ContainerResponse struct {
-	name string
-	ip    string
-	ports []int
+	Name  string `json:"name"`
+	Ip    string `json:"ip"`
+	Ports []v1.ServicePort  `json:"ports"`
 }
 
-func NewClient(namespace string)(client *Client, err error){
+func NewClient(namespace string) (client *Client, err error) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		return
@@ -45,7 +46,7 @@ func NewClient(namespace string)(client *Client, err error){
 	return
 }
 
-func NewClientWithToken(namespace string, token string)(client *Client, err error){
+func NewClientWithToken(namespace string, token string) (client *Client, err error) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		return
@@ -66,25 +67,25 @@ func NewClientWithToken(namespace string, token string)(client *Client, err erro
 	return
 }
 
-func (c *Client) CreateService(name string, ports []v1.ServicePort)(*v1.Service, error){
+func (c *Client) CreateService(name string, ports []v1.ServicePort) (*v1.Service, error) {
 	service := &v1.Service{
 		ObjectMeta: v1.ObjectMeta{
 			Name: name,
 		},
 		Spec: v1.ServiceSpec{
 			Selector: map[string]string{"name": name},
-			Type: "NodePort",
-			Ports: ports,
+			Type:     "NodePort",
+			Ports:    ports,
 		},
 	}
 	return c.clientset.Services(c.namespace).Create(service)
 }
 
-func (c *Client) DeleteService(name string)(error){
+func (c *Client) DeleteService(name string) error {
 	return c.clientset.Services(c.namespace).Delete(name, &v1.DeleteOptions{})
 }
 
-func (c *Client) CreatePod(name string, dockerImage string)(*v1.Pod, error){
+func (c *Client) CreatePod(name string, dockerImage string, env []v1.EnvVar) (*v1.Pod, error) {
 	pod := &v1.Pod{
 		ObjectMeta: v1.ObjectMeta{
 			Name: name,
@@ -95,8 +96,9 @@ func (c *Client) CreatePod(name string, dockerImage string)(*v1.Pod, error){
 		Spec: v1.PodSpec{
 			Containers: []v1.Container{
 				{
-					Name: name,
+					Name:  name,
 					Image: dockerImage,
+					Env: env,
 				},
 			},
 		},
@@ -104,48 +106,40 @@ func (c *Client) CreatePod(name string, dockerImage string)(*v1.Pod, error){
 	return c.clientset.Pods(c.namespace).Create(pod)
 }
 
-func (c *Client) ListPods()(*v1.PodList, error){
+func (c *Client) ListPods() (*v1.PodList, error) {
 	return c.clientset.Pods(c.namespace).List(v1.ListOptions{})
 }
 
-func (c *Client) DeletePod(name string)(error){
+func (c *Client) DeletePod(name string) error {
 	return c.clientset.Pods(c.namespace).Delete(name, &v1.DeleteOptions{})
 }
 
-
-
-func (c *Client) CreateContainerResource(containerRequest ContainerRequest, bearerToken string)(containerResponse ContainerResponse,err error){
+func (c *Client) CreateContainerResource(containerRequest *ContainerCreateRequest) (containerResponse ContainerResponse, err error) {
 	if err != nil {
 		return
 	}
 
 	u1 := uuid.NewV4()
-	name := "container-" + fmt.Sprintf("%s",u1)[0:7]
+	name := "container-" + fmt.Sprintf("%s", u1)[0:7]
 
-	svc, err := c.CreateService(name, containerRequest.ports)
+	svc, err := c.CreateService(name, containerRequest.Ports)
 	if err != nil {
 		return
 	}
 
-	_, err = c.CreatePod(name, containerRequest.dockerImage)
+	_, err = c.CreatePod(name, containerRequest.DockerImage, containerRequest.Env)
 	if err != nil {
 		return
 	}
 
-	ports := []int{}
-
-	for _ , svcPort := range svc.Spec.Ports {
-		ports = append(ports, int(svcPort.NodePort))
-	}
-
-	containerResponse.name = name
-	containerResponse.ports = ports
-	containerResponse.ip = config.Get("container_ip")
+	containerResponse.Name = name
+	containerResponse.Ports = svc.Spec.Ports
+	containerResponse.Ip = config.Get("container_ip")
 
 	return
 }
 
-func (c *Client) DeleteContainerResource(name string, bearerToken string)(err error){
+func (c *Client) DeleteContainerResource(name string) (err error) {
 	if err != nil {
 		return
 	}
