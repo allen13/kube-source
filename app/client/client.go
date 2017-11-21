@@ -2,6 +2,9 @@ package client
 
 import (
 	"fmt"
+	"log"
+	"time"
+
 	"github.com/allen13/kube-source/app/config"
 	"github.com/satori/go.uuid"
 	"k8s.io/client-go/kubernetes"
@@ -16,14 +19,14 @@ type Client struct {
 
 type ContainerCreateRequest struct {
 	DockerImage string           `json:"image"`
-	Env []v1.EnvVar		     `json:"env"`
+	Env         []v1.EnvVar      `json:"env"`
 	Ports       []v1.ServicePort `json:"ports"`
 }
 
 type ContainerResponse struct {
-	Name  string `json:"name"`
-	Ip    string `json:"ip"`
-	Ports []v1.ServicePort  `json:"ports"`
+	Name  string           `json:"name"`
+	Ip    string           `json:"ip"`
+	Ports []v1.ServicePort `json:"ports"`
 }
 
 func NewClient(namespace string) (client *Client, err error) {
@@ -98,7 +101,7 @@ func (c *Client) CreatePod(name string, dockerImage string, env []v1.EnvVar) (*v
 				{
 					Name:  name,
 					Image: dockerImage,
-					Env: env,
+					Env:   env,
 				},
 			},
 		},
@@ -108,6 +111,33 @@ func (c *Client) CreatePod(name string, dockerImage string, env []v1.EnvVar) (*v
 
 func (c *Client) ListPods() (*v1.PodList, error) {
 	return c.clientset.Pods(c.namespace).List(v1.ListOptions{})
+}
+
+func (c *Client) DeleteOldPods() error {
+	pods, err := c.ListPods()
+	if err != nil {
+		return err
+	}
+
+	now := time.Now()
+
+	for _, pod := range pods.Items {
+		startTime := pod.Status.StartTime
+		runningTime := now.Sub(startTime.Time)
+		containerLifespan := config.GetContainerLifespan()
+
+		if runningTime > containerLifespan {
+			err = c.DeleteContainerResource(pod.Name)
+			if err != nil {
+				return err
+			}
+
+			log.Println("Pod", pod.Name, "successfully deleted")
+		}
+
+	}
+
+	return nil
 }
 
 func (c *Client) DeletePod(name string) error {

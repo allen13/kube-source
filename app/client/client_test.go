@@ -1,9 +1,10 @@
 package client
 
 import (
-	"testing"
-	"k8s.io/client-go/pkg/api/v1"
 	"io/ioutil"
+	"testing"
+
+	"k8s.io/client-go/pkg/api/v1"
 )
 
 func TestKubeSourceClient(t *testing.T) {
@@ -13,21 +14,21 @@ func TestKubeSourceClient(t *testing.T) {
 	}
 
 	client, err := NewClientWithToken("integration-containers", string(token))
-	if err != nil{
+	if err != nil {
 		t.Error(err)
 	}
 
 	ports := []v1.ServicePort{
 		{
-			Name: "6379-tcp",
+			Name:     "6379-tcp",
 			Protocol: "tcp",
-			Port: int32(6379),
+			Port:     int32(6379),
 		},
 	}
 
-	createRequest := ContainerCreateRequest{
+	createRequest := &ContainerCreateRequest{
 		DockerImage: "redis:alpine",
-		Ports: ports,
+		Ports:       ports,
 	}
 
 	containerResource, err := client.CreateContainerResource(createRequest)
@@ -36,7 +37,7 @@ func TestKubeSourceClient(t *testing.T) {
 	}
 
 	nodePort := containerResource.Ports[0]
-	if !(nodePort > 30000 && nodePort < 32767){
+	if !(nodePort.NodePort > 30000 && nodePort.NodePort < 32767) {
 		t.Errorf("Failed to get back valid not port. Got %d", nodePort)
 	}
 

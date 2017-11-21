@@ -1,27 +1,31 @@
 package config
 
 import (
+	"time"
+
 	"github.com/spf13/viper"
 )
 
 var EnviornmentPrefix = "KUBE_SOURCE"
 var conf map[string]string = map[string]string{}
 
-func buildConfig(){
+func buildConfig() {
 	conf["address"] = "0.0.0.0:5606"
 	conf["request_logging"] = "false"
 	conf["container_namespace"] = "integration-containers"
 	conf["container_ip"] = "127.0.0.1"
+	conf["container_lifespan"] = "24h"
 	conf["tls_enabled"] = "false"
 	conf["tls_cert"] = "/etc/kube-source/ssl/kube-source.crt"
 	conf["tls_key"] = "/etc/kube-source/ssl/kube-source.key"
+
 }
 
-func Load()(err error) {
+func Load() (err error) {
 	viper.SetEnvPrefix(EnviornmentPrefix)
 	buildConfig()
 
-	for field,fieldDefault := range conf {
+	for field, fieldDefault := range conf {
 		viper.SetDefault(field, fieldDefault)
 	}
 
@@ -36,6 +40,10 @@ func Load()(err error) {
 	return
 }
 
-func Get(field string)(string){
+func Get(field string) string {
 	return conf[field]
+}
+
+func GetContainerLifespan() time.Duration {
+	return viper.GetDuration("container_lifespan")
 }

@@ -1,4 +1,4 @@
-FROM alpine:edge
+FROM alpine:latest
 
 ENV GOPATH /go
 ENV GOREPO github.com/allen13/kube-source

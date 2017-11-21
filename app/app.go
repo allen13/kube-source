@@ -1,14 +1,19 @@
 package app
 
 import (
+	"log"
+	"net/http"
+	"time"
+
 	"github.com/allen13/kube-source/app/client"
 	"github.com/allen13/kube-source/app/config"
 	"github.com/gin-gonic/gin"
-	"net/http"
 )
 
 func RunServer() (err error) {
 	config.Load()
+
+	go cleanupOldContainers()
 
 	server := buildServer()
 
@@ -21,6 +26,21 @@ func RunServer() (err error) {
 	}
 
 	return
+}
+
+func cleanupOldContainers() {
+	kubeClient, err := client.NewClient(config.Get("container_namespace"))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for {
+		err = kubeClient.DeleteOldPods()
+		if err != nil {
+			log.Println(err)
+		}
+		time.Sleep(time.Minute)
+	}
 }
 
 func buildServer() (g *gin.Engine) {
@@ -74,7 +94,7 @@ func deleteContainerResource(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, map[string]string{"delete": "success"})
 }
 
-func failedResponse(ctx *gin.Context, err error){
+func failedResponse(ctx *gin.Context, err error) {
 	ctx.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 }
 
